@@ -2,6 +2,7 @@ package ZConf::Bookmarks;
 
 use warnings;
 use strict;
+use ZConf;
 
 =head1 NAME
 
@@ -9,11 +10,11 @@ ZConf::Bookmarks - ZConf backed bookmark storage system.
 
 =head1 VERSION
 
-Version 0.0.0
+Version 0.1.0
 
 =cut
 
-our $VERSION = '0.0.0';
+our $VERSION = '0.1.0';
 
 
 =head1 SYNOPSIS
@@ -39,6 +40,8 @@ init the set and config. If this is set to false or
 not defined, besure to check '$zbm->{init}' to see
 if the config/module has been initiated or not.
 
+If it is not specified, it will default to true.
+
 =head2 set
 
 This is the set to load initially.
@@ -47,7 +50,7 @@ This is the set to load initially.
 
 If this key is defined, this hash will be passed to ZConf->new().
 
-    my $zbm=ZConf::Runner->new();
+    my $zbm=ZConf::Bookmarks->new();
     if($zbm->{error}){
         print "Error!\n";
     }
@@ -70,9 +73,9 @@ sub new{
 		$self->{set}=$args{set};
 	}
 
-	#this sets the set to undef if it is not defined
+	#this sets the set to 1 if it is not defined
 	if (!defined($args{autoinit})) {
-		$self->{autoinit}=undef;
+		$self->{autoinit}=1;
 	}else {
 		$self->{autoinit}=$args{set};
 	}
@@ -110,7 +113,8 @@ sub new{
 	}
 
 	#if it is not inited, check to see if it needs to do so
-	if (!$self->{init} && $self->{autoinit}) {
+	if ((!$self->{init}) && $self->{autoinit}) {
+		print "initing...\n";
 		$self->init($self->{set});
 		if ($self->{error}) {
 			warn('ZConf-Bookmarks new:4: Autoinit failed.');
@@ -125,7 +129,7 @@ sub new{
 
 	#checks it is set to use the default set
 	#use defined as '0' is a legit set name and is a perl boolean for false
-	if (!defined($self->{set})) {
+	if ((!defined($self->{set})) && $self->{init}) {
 		$self->{init}=$self->{zconf}->defaultSetExists('bookmarks');
 		if($self->{zconf}->{error}){
 			warn("ZConf-Bookmarks new:2: defaultSetExists failed for 'bookmarks'.".
@@ -463,6 +467,35 @@ sub delBookmark{
 	return 1;
 }
 
+=head2 getSet
+
+This gets what the current set is.
+
+    my $set=$zbm->getSet;
+    if($zbm->{error}){
+        print "Error!\n";
+    }
+
+=cut
+
+sub getSet{
+	my $self=$_[0];
+
+	my $set=$self->{zconf}->getSet('bookmarks');
+	if($self->{zconf}->{error}){
+		warn('ZConf-Runner getSet:2: ZConf error getting the loaded set the config "bookmarks".'.
+			 ' ZConf error="'.$self->{zconf}->{error}.'" '.
+			 'ZConf error string="'.$self->{zconf}->{errorString}.'"');
+		$self->{error}=2;
+		$self->{errorString}='ZConf error getting the loaded set the config "bookmarks".'.
+			                 ' ZConf error="'.$self->{zconf}->{error}.'" '.
+			                 'ZConf error string="'.$self->{zconf}->{errorString}.'"';
+		return undef;
+	}
+
+	return $set;
+}
+
 =head2 init
 
 This initializes it or a new set.
@@ -533,7 +566,7 @@ sub init{
 			                 .$self->{zconf}->{errorString}."'";
 		return undef;
 	}
-
+print "test\n";
 	return 1;
 }
 
@@ -641,6 +674,38 @@ sub listSchemes{
 	}
 
 	return keys(%newSchemes);
+}
+
+=head2 listSets
+
+This lists the available sets.
+
+    my @sets=$zbm->listSets;
+    if($zbm->{error}){
+        print "Error!";
+    }
+
+=cut
+
+sub listSets{
+	my $self=$_[0];
+
+	#blanks any previous errors
+	$self->errorBlank;
+
+	my @sets=$self->{zconf}->getAvailableSets('bookmarks');
+	if($self->{zconf}->{error}){
+		warn('ZConf-Bookmarks listSets:2: ZConf error listing sets for the config "bookmarks".'.
+			 ' ZConf error="'.$self->{zconf}->{error}.'" '.
+			 'ZConf error string="'.$self->{zconf}->{errorString}.'"');
+		$self->{error}=2;
+		$self->{errorString}='ZConf error listing sets for the config "bookmarks".'.
+			                 ' ZConf error="'.$self->{zconf}->{error}.'" '.
+			                 'ZConf error string="'.$self->{zconf}->{errorString}.'"';
+		return undef;
+	}
+
+	return @sets;
 }
 
 =head2 modBookmark
@@ -847,6 +912,48 @@ sub schemeExists{
 	}
 
 	return undef;
+}
+
+=head2 readSet
+
+This reads a specific set. If the set specified
+is undef, the default set is read.
+
+    #read the default set
+    $zcr->readSet();
+    if($zcr->{error}){
+        print "Error!\n";
+    }
+
+    #read the set 'someSet'
+    $zcr->readSet('someSet');
+    if($zcr->{error}){
+        print "Error!\n";
+    }
+
+=cut
+
+sub readSet{
+	my $self=$_[0];
+	my $set=$_[1];
+
+	
+	#blanks any previous errors
+	$self->errorBlank;
+
+	$self->{zconf}->read({config=>'bookmarks', set=>$set});
+	if ($self->{zconf}->{error}) {
+		warn('ZConf-Bookmarks readSet:2: ZConf error reading the config "bookmarks".'.
+			 ' ZConf error="'.$self->{zconf}->{error}.'" '.
+			 'ZConf error string="'.$self->{zconf}->{errorString}.'"');
+		$self->{error}=2;
+		$self->{errorString}='ZConf error reading the config "bookmarks".'.
+			                 ' ZConf error="'.$self->{zconf}->{error}.'" '.
+			                 'ZConf error string="'.$self->{zconf}->{errorString}.'"';
+		return undef;
+	}
+
+	return 1;
 }
 
 =head2 errorblank

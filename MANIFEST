@@ -4,5 +4,5 @@ Makefile.PL
 README
 lib/ZConf/Bookmarks.pm
 t/00-load.t
-t/pod-coverage.t
 t/pod.t
+t/boilerplate.t
