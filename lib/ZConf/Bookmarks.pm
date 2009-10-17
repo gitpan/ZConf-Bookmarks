@@ -10,11 +10,11 @@ ZConf::Bookmarks - ZConf backed bookmark storage system.
 
 =head1 VERSION
 
-Version 0.1.0
+Version 0.2.0
 
 =cut
 
-our $VERSION = '0.1.0';
+our $VERSION = '0.2.0';
 
 
 =head1 SYNOPSIS
@@ -23,7 +23,7 @@ our $VERSION = '0.1.0';
 
     my $zbm = ZConf::Bookmarks->new();
 
-=head1 METHODES
+=head1 METHODS
 
 =head2 new
 
@@ -33,7 +33,7 @@ One arguement is taken and that is a hash value.
 
 =head3 hash values
 
-=head2 autoinit
+=head4 autoinit
 
 If this is set to true, it will automatically call
 init the set and config. If this is set to false or
@@ -42,7 +42,7 @@ if the config/module has been initiated or not.
 
 If it is not specified, it will default to true.
 
-=head2 set
+=head4 set
 
 This is the set to load initially.
 
@@ -114,7 +114,6 @@ sub new{
 
 	#if it is not inited, check to see if it needs to do so
 	if ((!$self->{init}) && $self->{autoinit}) {
-		print "initing...\n";
 		$self->init($self->{set});
 		if ($self->{error}) {
 			warn('ZConf-Bookmarks new:4: Autoinit failed.');
@@ -271,7 +270,9 @@ sub addBookmark{
 	}
 
 	#sets the ID
-	$args{bmid}=`hostname`.':'.time.':'.rand;
+	my $hostname=`hostname`;
+	chomp($hostname);
+	$args{bmid}=$hostname.':'.time.':'.rand;
 
 	my $bookmarkExists=undef;
 	my $schemeExists=$self->schemeExists($args{scheme});
@@ -330,8 +331,8 @@ sub addBookmark{
 	#this adds the rest
 	$self->{zconf}->setVar('bookmarks', $bmVar.'link', $args{link});
 	$self->{zconf}->setVar('bookmarks', $bmVar.'description', $args{description});
-	$self->{zconf}->setVar('bookmarks', $bmVar.'created', gmtime());
-	$self->{zconf}->setVar('bookmarks', $bmVar.'lastModified', gmtime());
+	$self->{zconf}->setVar('bookmarks', $bmVar.'created', time());
+	$self->{zconf}->setVar('bookmarks', $bmVar.'lastModified', time());
 
 	$self->{zconf}->writeSetFromLoadedConfig({config=>'bookmarks'});
 	if ($self->{zconf}->{error}) {
@@ -351,14 +352,14 @@ sub addBookmark{
 
 =head2 bookmarkExists
 
-This verifies a bookmark ID exists.
+This verifies a bookmark ID exists for a specified scheme.
 
 You do have to check the return value as it will contain if it
 exists or not. $zbm->{error} is only true if there is an error
 and for this the bookmark ID not existing is not considered an
 error.
 
-    my $returned=$zbm->bookmarkExists($bmid);
+    my $returned=$zbm->bookmarkExists($scheme, $bmid);
     if($zbm->{error}){
         print "Error!\n";
     }else{
@@ -400,7 +401,7 @@ sub bookmarkExists{
 	#go through each one looking for a match
 	my $int=0;
 	while (defined($bmids[$int])) {
-		if ($scheme eq $bmids[$int]) {
+		if ($bmid eq $bmids[$int]) {
 			return 1;
 		}
 
@@ -465,6 +466,85 @@ sub delBookmark{
 	}
 
 	return 1;
+}
+
+=head2 getBookmark
+
+This reads a returns a bookmark.
+
+Two arguements are accepted. The first is the scheme
+and the second is the bookmark ID.
+
+    my %bookmark=$zbm->get($scheme, $bmID);
+    if($zbm->{error}){
+        print "Error!\n";
+    }
+
+=cut
+
+sub getBookmark{
+	my $self=$_[0];
+	my $scheme=$_[1];
+	my $bmid=$_[2];
+
+	$self->errorblank;
+
+	#make sure we have a scheme
+	if (!defined($scheme)) {
+		$self->{error}=3;
+		$self->{errorString}="No scheme specified";
+		warn('ZConf-Bookmarks getBookmark:3: '.$self->{errorString});
+		return undef;
+	}
+
+	#make sure we have a bookmark ID
+	if (!defined($bmid)) {
+		$self->{error}=3;
+		$self->{errorString}="No bookmark ID specified";
+		warn('ZConf-Bookmarks getBookmark:3: '.$self->{errorString});
+		return undef;
+	}
+
+	#check if it exists or not
+	my $exists=$self->bookmarkExists($scheme, $bmid);
+	if ($self->{error}) {
+		warn('ZConf-Bookmarks getBookmark: bookmarkExists errored');
+		return undef;
+	}
+	if (!$exists) {
+		$self->{error}=6;
+		$self->{errorString}='"'.$bmid.'" does not exist';
+		warn('ZConf-Bookmarks getBookmark:6: '.$self->{errorString});
+		return undef;
+	}
+
+	#this is what will be returned
+	my %bookmark;
+
+	#base bookmark variable name
+	my $bmvar='schemes/'.$scheme.'/'.$bmid.'/';
+
+	my %found=$self->{zconf}->regexVarGet(
+										  'bookmarks',
+										  '^'.quotemeta($bmvar)
+										  );
+
+	if ($self->{zconf}->{error}) {
+		$self->{error}=2;
+		$self->{errorString}='ZConf errored when doing a regexVarSearch. error="'.
+		                      $self->{zconf}->{error}.'" errorString="'.
+							  $self->{zconf}->{error}.'"';
+		warn('ZConf-Bookmarks getBookmark:2: '.$self->{errorString});
+		return undef;
+	}
+	
+	$bookmark{name}=$found{$bmvar.'name'};
+	$bookmark{link}=$found{$bmvar.'link'};
+	$bookmark{description}=$found{$bmvar.'description'};
+	$bookmark{created}=$found{$bmvar.'created'};
+	$bookmark{lastModified}=$found{$bmvar.'lastModified'};
+
+	return %bookmark;
 }
 
 =head2 getSet
@@ -566,7 +646,7 @@ sub init{
 			                 .$self->{zconf}->{errorString}."'";
 		return undef;
 	}
-print "test\n";
+
 	return 1;
 }
 
@@ -611,15 +691,13 @@ sub listBookmarks{
 		$self->{errorString}='The scheme "'.$scheme.'" does not exist';
 	}
 
-	my @bookmarks=$self->{zconf}->regxexVarGet('bookmarks', '^schemes/'.$scheme);
+	my @bookmarks=$self->{zconf}->regexVarSearch('bookmarks', '^schemes\/'.$scheme);
 	if ($self->{zconf}->{error}) {
-		warn("ZConf-Bookmarks listBookmarks:2: regexVarGet failed.".
-			 " It failed with '".$self->{zconf}->{error}."', '"
-			 .$self->{zconf}->{errorString}."'");
 		$self->{error}=2;
-		$self->{errorString}="writeSetFromHash failed.".
+		$self->{errorString}="regexVarSearch  failed.".
 			                 " It failed with '".$self->{zconf}->{error}."', '"
 			                 .$self->{zconf}->{errorString}."'";
+		warn("ZConf-Bookmarks listBookmarks:2".$self->{errorString});
 		return undef;
 	}
 
@@ -628,7 +706,7 @@ sub listBookmarks{
 	my $int=0;
 	while (defined($bookmarks[$int])) {
 		my @bookmark=split(/\//, $bookmarks[$int]);
-		$newBookmarks{$bookmark[1]}='';
+		$newBookmarks{$bookmark[2]}='';
 		$int++;
 	}
 
@@ -652,15 +730,13 @@ sub listSchemes{
 	#blanks any previous errors
 	$self->errorblank;
 
-	my @schemes=$self->{zconf}->regexVarGet('bookmarks', '^schemes/');
+	my @schemes=$self->{zconf}->regexVarSearch('bookmarks', '^schemes/');
 	if ($self->{zconf}->{error}) {
-		warn("ZConf-Bookmarks listSchemes:2: regexVarGet failed.".
-			 " It failed with '".$self->{zconf}->{error}."', '"
-			 .$self->{zconf}->{errorString}."'");
 		$self->{error}=2;
-		$self->{errorString}="writeSetFromHash failed.".
+		$self->{errorString}="regexVarSearch failed.".
 			                 " It failed with '".$self->{zconf}->{error}."', '"
 			                 .$self->{zconf}->{errorString}."'";
+		warn("ZConf-Bookmarks listSchemes:2:".$self->{errorString});
 		return undef;
 	}
 
@@ -977,7 +1053,7 @@ sub errorblank{
         return 1;
 }
 
-=head2 ERROR CODES
+=head1 ERROR CODES
 
 =head2 1
 

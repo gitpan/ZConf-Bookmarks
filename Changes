@@ -1,5 +1,9 @@
 Revision history for ZConf-Bookmarks
 
+0.2.0	2009-10-17/01:00
+		-Add the method 'getBookmark'.
+		-Massive number of bug fixes in regards to interfacing with ZConf.
+
 0.1.0	2009-02-23/01:30
 		-Add 'listSets', 'getSet', and 'readSet'.
 		-Now defaults to autoinit being on.
