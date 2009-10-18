@@ -10,11 +10,11 @@ ZConf::Bookmarks - ZConf backed bookmark storage system.
 
 =head1 VERSION
 
-Version 0.2.2
+Version 0.2.3
 
 =cut
 
-our $VERSION = '0.2.2';
+our $VERSION = '0.2.3';
 
 
 =head1 SYNOPSIS
@@ -458,10 +458,10 @@ sub delBookmark{
 	}
 
 	#the path that will be removed
-	my $path='scheme/'.$scheme.'/'.$bmid.'/';
+	my $path='schemes/'.$scheme.'/'.$bmid.'/';
 
 	#delete them and check for any errors
-	my @deleted=$self->{zconf}->regexVarDel('bookmarks', '^'.$path);
+	my @deleted=$self->{zconf}->regexVarDel('bookmarks', '^'.quotemeta($path));
 	if ($self->{zconf}->{error}) {
 		warn('ZConf-Bookmarks delBookmark:2: regexVarDel errored. '.
 			 'error="'.$self->{zconf}->{error}.'" errorString="'.

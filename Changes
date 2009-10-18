@@ -1,7 +1,10 @@
 Revision history for ZConf-Bookmarks
 
+0.2.3	2009-10-18/03:30
+		-Misc fixes to 'delBookmark'.
+
 0.2.2	2009-10-18/03:15
-		-Correct delBookmark not saving after the change.
+		-Correct 'delBookmark' not saving after the change.
 		-Misc warning cleanups.
 
 0.2.1	2009-10-17/15:50
