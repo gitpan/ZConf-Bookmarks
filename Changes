@@ -1,5 +1,13 @@
 Revision history for ZConf-Bookmarks
 
+0.2.2	2009-10-18/03:15
+		-Correct delBookmark not saving after the change.
+		-Misc warning cleanups.
+
+0.2.1	2009-10-17/15:50
+		-Correct how 'addBookmark' calls 'bookmarkExists'.
+		-All schemes are now coverted to lowercase.
+
 0.2.0	2009-10-17/01:00
 		-Add the method 'getBookmark'.
 		-Massive number of bug fixes in regards to interfacing with ZConf.

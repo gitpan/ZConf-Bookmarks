@@ -10,11 +10,11 @@ ZConf::Bookmarks - ZConf backed bookmark storage system.
 
 =head1 VERSION
 
-Version 0.2.0
+Version 0.2.2
 
 =cut
 
-our $VERSION = '0.2.0';
+our $VERSION = '0.2.2';
 
 
 =head1 SYNOPSIS
@@ -206,7 +206,8 @@ This is the URI, minus scheme. Thus 'http://vvelox.net/' would become
 
 =head4 scheme
 
-This is the scheme it should be added it.
+This is the scheme it should be added it. If it is not in lower case
+it will be converted to it.
 
     my %newBM;
     $newBM{description}='VVelox.net';
@@ -244,6 +245,9 @@ sub addBookmark{
 		$self->{errorString}="No name, $args{name}, type specified'";
 		return undef;
 	}
+
+	#make sure the scheme is lower case
+	$args{scheme}=lc($args{scheme});
 
 	#makes sure a URI scheme type is specified
 	if (!defined($args{scheme})) {
@@ -291,7 +295,7 @@ sub addBookmark{
 		#exist already
 		while (($int <= $max) && $exists) {
 			#check if it exists
-			$exists=$self->bookmarkExists($args{bmid});
+			$exists=$self->bookmarkExists($args{scheme}, $args{bmid});
 			if ($self->{error}) {
 				warn('ZConf-Bookmarks addBookmark: bookmarkExists errored');
 				return undef;
@@ -336,7 +340,7 @@ sub addBookmark{
 
 	$self->{zconf}->writeSetFromLoadedConfig({config=>'bookmarks'});
 	if ($self->{zconf}->{error}) {
-		warn('ZConf-Bookmarks modBookmark:2: writeSetFromLoadedConfig failed. '.
+		warn('ZConf-Bookmarks addBookmark:2: writeSetFromLoadedConfig failed. '.
 			 'error="'.$self->{zconf}->{error}.'" errorString="'.
 			 $self->{zconf}->{errorString}.'"');
 		$self->{error}=2;
@@ -387,6 +391,7 @@ sub bookmarkExists{
 		$self->{errorString}="No scheme type specified";
 		return undef;
 	}
+	$scheme=lc($scheme);
 
 	#make sure a scheme is specified
 	if (!defined($bmid)) {
@@ -416,9 +421,10 @@ sub bookmarkExists{
 
 This removes a bookmark.
 
-Only one arguement is accepted and that is the bookmark ID.
+Two arguements are required. The first is the
+scheme and the second is the bookmark.
 
-    $zbm->delBookmark($bmid);
+    $zbm->delBookmark($scheme, $bmid);
     if($zbm->{error}){
         print "Error\n";
     }
@@ -440,6 +446,8 @@ sub delBookmark{
 		$self->{errorString}="No scheme type specified";
 		return undef;
 	}
+	#convert it to lowercase
+	$scheme=lc($scheme);
 
 	#make sure a scheme is specified
 	if (!defined($bmid)) {
@@ -462,6 +470,20 @@ sub delBookmark{
 		$self->{errorString}='regexVarDel errored. '.
 			                 'error="'.$self->{zconf}->{error}.'" errorString="'.
 			                 $self->{zconf}->{errorString}.'"';
+		return undef;
+	}
+
+	#save it
+	$self->{zconf}->writeSetFromLoadedConfig({config=>'bookmarks'});
+	if ($self->{zconf}->{error}) {
+		warn('ZConf-Bookmarks delBookmark:2: writeSetFromLoadedConfig failed. '.
+			 'error="'.$self->{zconf}->{error}.'" errorString="'.
+			 $self->{zconf}->{errorString}.'"');
+		$self->{error}=2;
+		$self->{errorString}='writeSetFromLoadedConfig failed. '.
+			                 'error="'.$self->{zconf}->{error}.
+                             '" errorString="'.
+			                  $self->{zconf}->{errorString}.'"';
 		return undef;
 	}
 
@@ -496,6 +518,8 @@ sub getBookmark{
 		warn('ZConf-Bookmarks getBookmark:3: '.$self->{errorString});
 		return undef;
 	}
+	#convert it to lowercase
+	$scheme=lc($scheme);
 
 	#make sure we have a bookmark ID
 	if (!defined($bmid)) {
@@ -676,6 +700,8 @@ sub listBookmarks{
 		$self->{errorString}="No scheme type specified";
 		return undef;
 	}
+	#convert it to lowercase
+	$scheme=lc($scheme);
 
 	#check if it exists
 	my $returned=$self->schemeExists($scheme);
@@ -843,6 +869,9 @@ sub modBookmark{
 		$self->{errorString}="No scheme type specified";
 		return undef;
 	}
+	#convert it to lowercase
+	$args{scheme}=lc($args{scheme});
+
 
 	#makes sure a name is specified
 	if (!defined($args{name})) {
@@ -970,6 +999,8 @@ sub schemeExists{
 		$self->{errorString}="No scheme type specified";
 		return undef;
 	}
+	#convert it to lowercase
+	$scheme=lc($scheme);
 
 	my @schemes=$self->listSchemes();
 	if ($self->{error}) {
