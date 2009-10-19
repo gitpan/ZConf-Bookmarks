@@ -10,11 +10,11 @@ ZConf::Bookmarks - ZConf backed bookmark storage system.
 
 =head1 VERSION
 
-Version 0.2.3
+Version 0.2.4
 
 =cut
 
-our $VERSION = '0.2.3';
+our $VERSION = '0.2.4';
 
 
 =head1 SYNOPSIS
@@ -915,9 +915,9 @@ sub modBookmark{
 
 
 	my $bookmarkExists=undef;
-	my $schemeExists=$self->schemeExists($args{scheme});
+	$bookmarkExists=$self->bookmarkExists($args{scheme}, $args{bmid});
 	if ($self->{error}) {
-		warn('ZConf-Bookmarks addBookmark: schemeExists errored');
+		warn('ZConf-Bookmarks addBookmark: bookmarkExists errored');
 		return undef;
 	}
 

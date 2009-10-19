@@ -1,5 +1,8 @@
 Revision history for ZConf-Bookmarks
 
+0.2.4	2009-10-18/15:20
+		-Misc fixes to 'modBookmark'.
+
 0.2.3	2009-10-18/03:30
 		-Misc fixes to 'delBookmark'.
 
